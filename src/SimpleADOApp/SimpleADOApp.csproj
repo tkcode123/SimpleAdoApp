@@ -77,8 +77,7 @@
     <Compile Include="ReliableReader.cs" />
     <Compile Include="StructuredData.cs" />
     <Compile Include="StructuredDataDescription.cs" />
-    <Compile Include="StructuredDataTypeDescriptionProvider.cs" />
-    <Compile Include="StructuredDataTypeDescriptor.cs" />
+    <Compile Include="StructuredDataPropertyDescriptor.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config">

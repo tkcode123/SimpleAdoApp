@@ -77,9 +77,15 @@ namespace SimpleADOApp
                         return StructuredData.ReadMapped(r).ToList();
                     }
                 });
+
+            var props = System.ComponentModel.TypeDescriptor.GetProperties(list.First());
+
             using (var grid = new GridForm())
             {
                 grid.Text = "DATA";
+                grid.dataGridView1.AutoGenerateColumns = true;
+                grid.dataGridView1.AutoSize = true;
+                grid.dataGridView1.AutoSizeColumnsMode = System.Windows.Forms.DataGridViewAutoSizeColumnsMode.DisplayedCells;
                 grid.structuredDataBindingSource.DataSource = list;
                 grid.ShowDialog();
             }

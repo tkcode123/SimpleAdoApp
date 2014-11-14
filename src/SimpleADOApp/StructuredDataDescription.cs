@@ -1,17 +1,16 @@
 ﻿using System;
-using System.Collections.Generic;
+using System.ComponentModel;
 using System.Data.Common;
 using System.Linq;
-using System.Text;
-using ADOExtensions;
 
 namespace SimpleADOApp
 {
     public class StructuredDataDescription
     {
-        private readonly Func<ReliableReader, int, object>[] readFunc;
-        private readonly string[] columnName;
-        private readonly Type[] targetType;
+        private readonly Func<DbDataReader, int, object>[] readFunc;
+        internal readonly string[] columnName;
+        internal readonly Type[] targetType;
+        private readonly PropertyDescriptorCollection allProps;
 
         private static readonly object zeroInt32 = 0;
         private static readonly object oneInt32 = 1;
@@ -19,22 +18,26 @@ namespace SimpleADOApp
         private static readonly object trueBool = true;
         private static readonly object zeroInt64 = 0L;
 
-        internal StructuredDataDescription(ReliableReader reader)
+        internal StructuredDataDescription(DbDataReader reader)
         {
             int cnt = reader.VisibleFieldCount;
-            this.readFunc = new Func<ReliableReader, int, object>[cnt];
+            this.readFunc = new Func<DbDataReader, int, object>[cnt];
             this.columnName = new string[cnt];
             this.targetType = new Type[cnt];
 
+            var prop = new PropertyDescriptor[cnt];
             for (int i = 0; i < cnt; i++)
             {
                 this.columnName[i] = reader.GetName(i);
                 this.targetType[i] = reader.GetFieldType(i);
                 this.readFunc[i] = FindFunc(targetType[i]);
+
+                prop[i] = new StructuredDataPropertyDescriptor(this, i, reader.GetDataTypeName(i));
             }
+            this.allProps = new PropertyDescriptorCollection(prop, true);
         }
 
-        private static Func<ReliableReader, int, object> FindFunc(Type type)
+        private static Func<DbDataReader, int, object> FindFunc(Type type)
         {
             if (type == typeof(byte) || type == typeof(byte?))
                 return ReadByte;
@@ -59,19 +62,19 @@ namespace SimpleADOApp
             if (type == typeof(byte[]))
                 return ReadBytes;
             return ReadObject;
-        }       
+        }
 
-        private static object ReadByte(ReliableReader reader, int ordinal)
+        private static object ReadByte(DbDataReader reader, int ordinal)
         {           
             return reader.GetByte(ordinal);
         }
 
-        private static object ReadInt16(ReliableReader reader, int ordinal)
+        private static object ReadInt16(DbDataReader reader, int ordinal)
         {
             return reader.GetInt16(ordinal);
         }
 
-        private static object ReadInt32(ReliableReader reader, int ordinal)
+        private static object ReadInt32(DbDataReader reader, int ordinal)
         {
             var v = reader.GetInt32(ordinal);
             if (v == 0)
@@ -81,7 +84,7 @@ namespace SimpleADOApp
             return v;
         }
 
-        private static object ReadInt64(ReliableReader reader, int ordinal)
+        private static object ReadInt64(DbDataReader reader, int ordinal)
         {
             var v = reader.GetInt64(ordinal);
             if (v == 0)
@@ -89,38 +92,38 @@ namespace SimpleADOApp
             return v;
         }
 
-        private static object ReadBoolean(ReliableReader reader, int ordinal)
+        private static object ReadBoolean(DbDataReader reader, int ordinal)
         {
             var v = reader.GetBoolean(ordinal);
             return v ? trueBool : falseBool;
         }
 
-        private static object ReadString(ReliableReader reader, int ordinal)
+        private static object ReadString(DbDataReader reader, int ordinal)
         {
             return reader.GetString(ordinal);
         }
 
-        private static object ReadFloat(ReliableReader reader, int ordinal)
+        private static object ReadFloat(DbDataReader reader, int ordinal)
         {
             return reader.GetFloat(ordinal);
         }
 
-        private static object ReadDouble(ReliableReader reader, int ordinal)
+        private static object ReadDouble(DbDataReader reader, int ordinal)
         {
             return reader.GetDouble(ordinal);
         }
 
-        private static object ReadGuid(ReliableReader reader, int ordinal)
+        private static object ReadGuid(DbDataReader reader, int ordinal)
         {
             return reader.GetGuid(ordinal);
         }
 
-        private static object ReadDecimal(ReliableReader reader, int ordinal)
+        private static object ReadDecimal(DbDataReader reader, int ordinal)
         {
             return reader.GetDecimal(ordinal);
         }
 
-        private static object ReadBytes(ReliableReader reader, int ordinal)
+        private static object ReadBytes(DbDataReader reader, int ordinal)
         {
             var len = reader.GetBytes(ordinal, 0L, null, 0, 0);
             var ret = new byte[len];
@@ -128,12 +131,12 @@ namespace SimpleADOApp
             return ret;
         }
 
-        private static object ReadObject(ReliableReader reader, int ordinal)
+        private static object ReadObject(DbDataReader reader, int ordinal)
         {
             return reader.GetValue(ordinal);
-        } 
+        }
 
-        internal StructuredData Read(ReliableReader reader)
+        internal StructuredData Read(DbDataReader reader)
         {
             var func = this.readFunc;
             var data = new object[func.Length];
@@ -143,6 +146,11 @@ namespace SimpleADOApp
                     data[i] = func[i](reader, i);
             }
             return new StructuredData(this, data);
+        }
+
+        internal PropertyDescriptorCollection GetProperties(Attribute[] attributes)
+        {
+            return allProps;
         }
     }
 }

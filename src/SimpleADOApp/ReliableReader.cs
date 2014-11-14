@@ -7,7 +7,6 @@ using System.Text;
 
 namespace ADOExtensions
 {
-    //[System.Diagnostics.DebuggerStepThrough]
     public sealed class ReliableReader : DbDataReader
     {
         private DbDataReader r;
