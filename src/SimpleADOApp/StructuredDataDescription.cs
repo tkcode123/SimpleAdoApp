@@ -11,6 +11,7 @@ namespace SimpleADOApp
         internal readonly string[] columnName;
         internal readonly Type[] targetType;
         private readonly PropertyDescriptorCollection allProps;
+        private readonly string source;
 
         private static readonly object zeroInt32 = 0;
         private static readonly object oneInt32 = 1;
@@ -18,7 +19,7 @@ namespace SimpleADOApp
         private static readonly object trueBool = true;
         private static readonly object zeroInt64 = 0L;
 
-        internal StructuredDataDescription(DbDataReader reader)
+        internal StructuredDataDescription(DbDataReader reader, string source)
         {
             int cnt = reader.VisibleFieldCount;
             this.readFunc = new Func<DbDataReader, int, object>[cnt];
@@ -35,6 +36,7 @@ namespace SimpleADOApp
                 prop[i] = new StructuredDataPropertyDescriptor(this, i, reader.GetDataTypeName(i));
             }
             this.allProps = new PropertyDescriptorCollection(prop, true);
+            this.source = source ?? "StructuredData";
         }
 
         private static Func<DbDataReader, int, object> FindFunc(Type type)
@@ -136,7 +138,7 @@ namespace SimpleADOApp
             return reader.GetValue(ordinal);
         }
 
-        internal StructuredData Read(DbDataReader reader)
+        internal StructuredData Interpret(DbDataReader reader)
         {
             var func = this.readFunc;
             var data = new object[func.Length];
@@ -151,6 +153,21 @@ namespace SimpleADOApp
         internal PropertyDescriptorCollection GetProperties(Attribute[] attributes)
         {
             return allProps;
+        }
+
+        public override int GetHashCode()
+        {
+            return source.GetHashCode();
+        }
+
+        public override bool Equals(object obj)
+        {
+            return false;
+        }
+
+        public override string ToString()
+        {
+            return source;
         }
     }
 }

@@ -11,9 +11,9 @@ namespace ADOExtensions
     {
         private DbDataReader r;
         private TypeCode[] codes;
-        private IDisposable owner;
+        private DbCommand owner;
 
-        public ReliableReader(DbDataReader rdr, IDisposable own = null)
+        public ReliableReader(DbDataReader rdr, DbCommand own = null)
         {
             r = rdr;
             owner = own;
@@ -214,6 +214,26 @@ namespace ADOExtensions
             throw new NotImplementedException();
         }
 
+        public override int GetProviderSpecificValues(object[] values)
+        {
+            return r.GetProviderSpecificValues(values);
+        }
+
+        protected override DbDataReader GetDbDataReader(int ordinal)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override object GetProviderSpecificValue(int ordinal)
+        {
+            return r.GetProviderSpecificValue(ordinal);
+        }
+
+        public override Type GetProviderSpecificFieldType(int ordinal)
+        {
+            return r.GetProviderSpecificFieldType(ordinal);
+        }
+
         public override bool HasRows
         {
             get { return r.HasRows; }
@@ -252,6 +272,11 @@ namespace ADOExtensions
             get { return r.RecordsAffected; }
         }
 
+        public override int VisibleFieldCount
+        {
+            get { return r.VisibleFieldCount; }
+        }
+
         public override object this[string name]
         {
             get { return r[name]; }
@@ -272,6 +297,11 @@ namespace ADOExtensions
             var mi = instance.GetType().GetMethod(methodName);
             var inst = mi.Invoke(instance, new object[] { ordinal });
             return (T)inst;
+        }
+
+        public override string ToString()
+        {
+            return (owner != null ? owner.CommandText : (r != null ? r.ToString() : "<closed>"));
         }
     }
 }

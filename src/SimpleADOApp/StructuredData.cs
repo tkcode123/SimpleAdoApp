@@ -1,99 +1,158 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Data.Common;
 using System.Linq;
-using ADOExtensions;
 
 namespace SimpleADOApp
 {
-    public class StructuredData : ICustomTypeDescriptor
+    public class StructuredData : ICustomTypeDescriptor, IEquatable<StructuredData>
     {     
-        public static IEnumerable<StructuredData> ReadMapped(ReliableReader reader)
+        public static IEnumerable<StructuredData> ReadMapped(DbDataReader reader, string source = null)
         {
             if (reader == null)
                 throw new ArgumentNullException("reader");
-            var desc = new StructuredDataDescription(reader);
+            if (reader.IsClosed)
+                yield break;
+            var desc = new StructuredDataDescription(reader, source ?? reader.ToString());
             while (reader.Read())
             {
-                yield return desc.Read(reader);
+                yield return desc.Interpret(reader);
             }
             reader.Close();
             reader.Dispose();
-            yield break;
         }
 
         private readonly StructuredDataDescription description;
         private readonly object[] data;
+        private int hash;
 
-        public StructuredData(StructuredDataDescription description, object[] data)
+        internal StructuredData(StructuredDataDescription description, object[] data)
         {
             this.description = description;
             this.data = data;
         }
 
-        public StructuredDataDescription GetDescription() { return this.description; }
-        public object GetValue(int i) { return this.data[i]; }
+        internal StructuredDataDescription GetDescription() { return this.description; }
+        
+        internal object GetValue(int i) { return this.data[i]; }
+
+        internal void SetValue(int i, object val)
+        {
+            if (val == null)
+                this.data[i] = null;
+            else if (val.GetType() == this.description.targetType[i])
+                this.data[i] = val;
+            else
+                throw new InvalidOperationException(string.Format("Expected instance of type '{0}', but got '{1}'.", this.description.targetType[i].FullName, val.GetType().FullName));
+        }
+
+        public override int GetHashCode()
+        {
+            if (this.hash == 0)
+            {
+                int h = description.GetHashCode();
+                for (int i = 0; i < data.Length; i++)
+                    h ^= (h * 17 + (data[i] != null ? data[i].GetHashCode() : 13));
+                this.hash = h;
+            }
+            return this.hash;
+        }
+
+        public override bool Equals(object obj)
+        {
+            var other = obj as StructuredData;
+            if (other != null)
+                return Equals(other);
+            return base.Equals(obj);
+        }
+
+        public override string ToString()
+        {
+            return description.ToString();
+        }
 
         #region ICustomTypeDescriptor Members
 
-        public AttributeCollection GetAttributes()
+        public virtual AttributeCollection GetAttributes()
         {
-            throw new NotImplementedException();
+            return TypeDescriptor.GetAttributes(this, true);
         }
 
-        public string GetClassName()
+        public virtual string GetClassName()
         {
-            throw new NotImplementedException();
+            return TypeDescriptor.GetClassName(this, true);
         }
 
-        public string GetComponentName()
+        public virtual string GetComponentName()
         {
-            throw new NotImplementedException();
+            return TypeDescriptor.GetComponentName(this, true);
         }
 
-        public TypeConverter GetConverter()
+        public virtual TypeConverter GetConverter()
         {
-            throw new NotImplementedException();
+            return TypeDescriptor.GetConverter(this, true);
         }
 
-        public EventDescriptor GetDefaultEvent()
+        public virtual EventDescriptor GetDefaultEvent()
         {
-            throw new NotImplementedException();
+            return TypeDescriptor.GetDefaultEvent(this, true);
         }
 
-        public PropertyDescriptor GetDefaultProperty()
+        public virtual PropertyDescriptor GetDefaultProperty()
         {
-            throw new NotImplementedException();
+            return TypeDescriptor.GetDefaultProperty(this, true);
         }
 
-        public object GetEditor(Type editorBaseType)
+        public virtual object GetEditor(Type editorBaseType)
         {
-            throw new NotImplementedException();
+            return TypeDescriptor.GetEditor(this, editorBaseType, true);
         }
 
-        public EventDescriptorCollection GetEvents(Attribute[] attributes)
+        public virtual EventDescriptorCollection GetEvents(Attribute[] attributes)
         {
-            throw new NotImplementedException();
+            return TypeDescriptor.GetEvents(this, attributes, true);
         }
 
-        public EventDescriptorCollection GetEvents()
+        public virtual EventDescriptorCollection GetEvents()
         {
-            throw new NotImplementedException();
+            return TypeDescriptor.GetEvents(this, true);
         }
 
-        public PropertyDescriptorCollection GetProperties(Attribute[] attributes)
+        public virtual PropertyDescriptorCollection GetProperties(Attribute[] attributes)
         {
             return description.GetProperties(attributes);
         }
 
-        public PropertyDescriptorCollection GetProperties()
+        public virtual PropertyDescriptorCollection GetProperties()
         {
             return description.GetProperties(null);
         }
 
-        public object GetPropertyOwner(PropertyDescriptor pd)
+        public virtual object GetPropertyOwner(PropertyDescriptor pd)
         {
-            throw new NotImplementedException();
+            return this;
+        }
+
+        #endregion
+
+        #region IEquatable<StructuredData> Members
+
+        public bool Equals(StructuredData other)
+        {
+            if (this == other)
+                return true;
+
+            if (other != null && other.description == this.description && this.data.Length == other.data.Length)
+            {
+                for (int i = 0; i < data.Length; i++)
+                {
+                    if (object.Equals(this.data[i], other.data[i]) == false)
+                        return false;
+                }
+                return true;
+            }
+            return false;
         }
 
         #endregion

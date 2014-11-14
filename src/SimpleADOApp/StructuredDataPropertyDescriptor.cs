@@ -34,12 +34,12 @@ namespace SimpleADOApp
             var sd = component as StructuredData;
             if (sd != null && this.description == sd.GetDescription())
                 return sd.GetValue(this.index);
-            throw new NotImplementedException();
+            throw new InvalidOperationException("Component null or of wrong type.");
         }
 
         public override bool IsReadOnly
         {
-            get { return true; }
+            get { return false; }
         }
 
         public override Type PropertyType
@@ -49,12 +49,20 @@ namespace SimpleADOApp
 
         public override void ResetValue(object component)
         {
-            throw new NotImplementedException();
+            var sd = component as StructuredData;
+            if (sd != null && this.description == sd.GetDescription())
+                sd.SetValue(this.index, null);
+            else
+                throw new InvalidOperationException("Component null or of wrong type.");
         }
 
         public override void SetValue(object component, object value)
         {
-            throw new NotImplementedException();
+            var sd = component as StructuredData;
+            if (sd != null && this.description == sd.GetDescription())
+                sd.SetValue(this.index, value);
+            else
+                throw new InvalidOperationException("Component null or of wrong type.");
         }
 
         public override bool ShouldSerializeValue(object component)
@@ -134,7 +142,7 @@ namespace SimpleADOApp
         {
             get
             {
-                return base.IsLocalizable;
+                return false;
             }
         }
 
