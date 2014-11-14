@@ -74,7 +74,7 @@ namespace SimpleADOApp
                                     c => c.Dump(),
                                     name))
                     {
-                        return StructuredData.ReadMapped(r).ToList();
+                        return StructuredData.ReadMapped<StructuredData>(r).ToList();
                     }
                 });
 

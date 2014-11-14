@@ -7,37 +7,42 @@ using System.Linq;
 namespace SimpleADOApp
 {
     public class StructuredData : ICustomTypeDescriptor, IEquatable<StructuredData>
-    {     
-        public static IEnumerable<StructuredData> ReadMapped(DbDataReader reader, string source = null)
+    {
+        public static IEnumerable<T> ReadMapped<T>(DbDataReader reader, string source = null) where T : StructuredData, new()
         {
             if (reader == null)
                 throw new ArgumentNullException("reader");
             if (reader.IsClosed)
                 yield break;
-            var desc = new StructuredDataDescription(reader, source ?? reader.ToString());
+            var desc = new StructuredDataDescription(reader, source ?? reader.ToString(), () => new T());
             while (reader.Read())
             {
-                yield return desc.Interpret(reader);
+                yield return desc.Interpret(reader) as T;
             }
             reader.Close();
             reader.Dispose();
         }
 
-        private readonly StructuredDataDescription description;
-        private readonly object[] data;
+        private StructuredDataDescription description;
+        private object[] data;
         private int hash;
 
-        internal StructuredData(StructuredDataDescription description, object[] data)
+        public StructuredData()
         {
-            this.description = description;
-            this.data = data;
+        }
+
+        internal StructuredData Init(StructuredDataDescription s, object[] d)
+        {
+            this.description = s;
+            this.data = d;
+            return this;
         }
 
         internal StructuredDataDescription GetDescription() { return this.description; }
         
-        internal object GetValue(int i) { return this.data[i]; }
+        public object GetValue(int i) { return this.data[i]; }
 
-        internal void SetValue(int i, object val)
+        public void SetValue(int i, object val)
         {
             if (val == null)
                 this.data[i] = null;
