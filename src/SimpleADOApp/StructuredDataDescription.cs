@@ -43,27 +43,32 @@ namespace SimpleADOApp
 
         private static Func<DbDataReader, int, object> FindFunc(Type type)
         {
-            if (type == typeof(byte) || type == typeof(byte?))
-                return ReadByte;
-            if (type == typeof(short) || type == typeof(short?))
-                return ReadInt16;
-            if (type == typeof(int) || type == typeof(int?))
-                return ReadInt32;
-            if (type == typeof(long) || type == typeof(long?))
-                return ReadInt64;
-            if (type == typeof(bool) || type == typeof(bool?))
-                return ReadBoolean;
-            if (type == typeof(string))
+            Type t = type.IsValueType && type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Nullable<>) 
+                                        ? type.GetGenericArguments()[0] : type;
+            if (t.IsValueType)
+            {
+                if (t == typeof(byte))
+                    return ReadByte;
+                if (t == typeof(short))
+                    return ReadInt16;
+                if (t == typeof(int))
+                    return ReadInt32;
+                if (t == typeof(long))
+                    return ReadInt64;
+                if (t == typeof(bool))
+                    return ReadBoolean;
+                if (t == typeof(float))
+                    return ReadFloat;
+                if (t == typeof(double))
+                    return ReadDouble;
+                if (t == typeof(decimal))
+                    return ReadDecimal;
+                if (t == typeof(Guid))
+                    return ReadGuid;
+            }
+            if (t == typeof(string))
                 return ReadString;
-            if (type == typeof(float) || type == typeof(float?))
-                return ReadFloat;
-            if (type == typeof(double) || type == typeof(double?))
-                return ReadDouble;
-            if (type == typeof(decimal) || type == typeof(decimal?))
-                return ReadDecimal;
-            if (type == typeof(Guid) || type == typeof(Guid?))
-                return ReadGuid;
-            if (type == typeof(byte[]))
+            if (t == typeof(byte[]))
                 return ReadBytes;
             return ReadObject;
         }
@@ -165,7 +170,7 @@ namespace SimpleADOApp
 
         public override bool Equals(object obj)
         {
-            return false;
+            return this == obj;
         }
 
         public override string ToString()

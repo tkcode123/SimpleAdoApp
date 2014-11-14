@@ -10,14 +10,22 @@ namespace SimpleADOApp
     {
         public static IEnumerable<T> ReadMapped<T>(DbDataReader reader, string source = null) where T : StructuredData, new()
         {
+            var x = ReadMapped(reader, () => new T(), source);
+            foreach (var y in x)
+                yield return y as T;
+        }
+
+        private static IEnumerable<StructuredData> ReadMapped(DbDataReader reader, Func<StructuredData> create, string source = null)
+        {
             if (reader == null)
                 throw new ArgumentNullException("reader");
             if (reader.IsClosed)
                 yield break;
-            var desc = new StructuredDataDescription(reader, source ?? reader.ToString(), () => new T());
+            var desc = new StructuredDataDescription(reader, source ?? reader.ToString(), create);
             while (reader.Read())
             {
-                yield return desc.Interpret(reader) as T;
+                var curr = desc.Interpret(reader);
+                yield return curr;
             }
             reader.Close();
             reader.Dispose();
@@ -40,14 +48,24 @@ namespace SimpleADOApp
 
         internal StructuredDataDescription GetDescription() { return this.description; }
         
-        public object GetValue(int i) { return this.data[i]; }
+        public virtual object GetValue(int i) { return this.data[i]; }
 
-        public void SetValue(int i, object val)
+        public virtual void SetValue(int i, object val)
         {
             if (val == null)
+            {
+                if (this.data[i] == null)
+                    return;
+                this.hash = 0;
                 this.data[i] = null;
+            }
             else if (val.GetType() == this.description.targetType[i])
+            {
+                if (this.data[i].Equals(val))
+                    return;
+                this.hash = 0;
                 this.data[i] = val;
+            }
             else
                 throw new InvalidOperationException(string.Format("Expected instance of type '{0}', but got '{1}'.", this.description.targetType[i].FullName, val.GetType().FullName));
         }
@@ -56,7 +74,7 @@ namespace SimpleADOApp
         {
             if (this.hash == 0)
             {
-                int h = description.GetHashCode();
+                int h = 15485411; // Just a prime.
                 for (int i = 0; i < data.Length; i++)
                     h ^= (h * 17 + (data[i] != null ? data[i].GetHashCode() : 13));
                 this.hash = h;
@@ -148,7 +166,7 @@ namespace SimpleADOApp
             if (this == other)
                 return true;
 
-            if (other != null && other.description == this.description && this.data.Length == other.data.Length)
+            if (other != null && this.data.Length == other.data.Length)
             {
                 for (int i = 0; i < data.Length; i++)
                 {
