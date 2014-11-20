@@ -9,6 +9,7 @@ namespace SimpleADOApp
     {
         private readonly Func<DbDataReader, int, object>[] readFunc;
         internal readonly string[] columnName;
+        internal readonly string[] columnDescription;
         internal readonly Type[] targetType;
         private readonly PropertyDescriptorCollection allProps;
         private readonly string source;
@@ -25,6 +26,7 @@ namespace SimpleADOApp
             int cnt = reader.VisibleFieldCount;
             this.readFunc = new Func<DbDataReader, int, object>[cnt];
             this.columnName = new string[cnt];
+            this.columnDescription = new string[cnt];
             this.targetType = new Type[cnt];
             this.creator = create;
 
@@ -32,10 +34,11 @@ namespace SimpleADOApp
             for (int i = 0; i < cnt; i++)
             {
                 this.columnName[i] = reader.GetName(i);
+                this.columnDescription[i] = reader.GetDataTypeName(i);
                 this.targetType[i] = reader.GetFieldType(i);
                 this.readFunc[i] = FindFunc(targetType[i]);
 
-                prop[i] = new StructuredDataPropertyDescriptor(this, i, reader.GetDataTypeName(i));
+                prop[i] = new StructuredDataPropertyDescriptor(this, i);
             }
             this.allProps = new PropertyDescriptorCollection(prop, true);
             this.source = source ?? "StructuredData";
@@ -145,7 +148,7 @@ namespace SimpleADOApp
             return reader.GetValue(ordinal);
         }
 
-        internal StructuredData Interpret(DbDataReader reader)
+        internal StructuredData Interpret(DbDataReader reader, int pos)
         {
             var func = this.readFunc;
             var data = new object[func.Length];
@@ -155,7 +158,7 @@ namespace SimpleADOApp
                     data[i] = func[i](reader, i);
             }
             var sd = creator();
-            return sd.Init(this, data);
+            return sd.Init(this, data, pos);
         }
 
         internal PropertyDescriptorCollection GetProperties(Attribute[] attributes)

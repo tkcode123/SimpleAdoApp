@@ -10,6 +10,7 @@ namespace SimpleADOApp
 {
     partial class Program
     { 
+        [STAThread]
         static void Main(string[] args)
         {
             Console.WriteLine("CLR={0}, {1}bit", typeof(int).Assembly.ImageRuntimeVersion, IntPtr.Size * 8);
@@ -76,17 +77,15 @@ namespace SimpleADOApp
                     {
                         return StructuredData.ReadMapped<StructuredData>(r).ToList();
                     }
-                });
-
-            var props = System.ComponentModel.TypeDescriptor.GetProperties(list.First());
+                });         
 
             using (var grid = new GridForm())
             {
-                grid.Text = "DATA";
                 grid.dataGridView1.AutoGenerateColumns = true;
                 grid.dataGridView1.AutoSize = true;
                 grid.dataGridView1.AutoSizeColumnsMode = System.Windows.Forms.DataGridViewAutoSizeColumnsMode.DisplayedCells;
-                grid.structuredDataBindingSource.DataSource = list;
+                grid.structuredDataBindingSource.DataSource = new StructuredDataBindingList(list, true);
+                grid.Text = grid.structuredDataBindingSource.DataSource.ToString();
                 grid.ShowDialog();
             }
         }

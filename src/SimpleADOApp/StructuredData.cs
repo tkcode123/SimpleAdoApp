@@ -22,9 +22,10 @@ namespace SimpleADOApp
             if (reader.IsClosed)
                 yield break;
             var desc = new StructuredDataDescription(reader, source ?? reader.ToString(), create);
+            int pos = -1;
             while (reader.Read())
             {
-                var curr = desc.Interpret(reader);
+                var curr = desc.Interpret(reader, ++pos);
                 yield return curr;
             }
             reader.Close();
@@ -34,15 +35,17 @@ namespace SimpleADOApp
         private StructuredDataDescription description;
         private object[] data;
         private int hash;
+        private int position;
 
         public StructuredData()
         {
         }
 
-        internal StructuredData Init(StructuredDataDescription s, object[] d)
+        internal StructuredData Init(StructuredDataDescription s, object[] d, int pos)
         {
             this.description = s;
             this.data = d;
+            this.position = pos;
             return this;
         }
 
@@ -69,6 +72,13 @@ namespace SimpleADOApp
             else
                 throw new InvalidOperationException(string.Format("Expected instance of type '{0}', but got '{1}'.", this.description.targetType[i].FullName, val.GetType().FullName));
         }
+
+        public virtual string GetDescription(int i)
+        {
+            return this.description.columnDescription[i];
+        }
+
+        public int GetPosition() { return position; }
 
         public override int GetHashCode()
         {

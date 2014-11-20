@@ -10,10 +10,11 @@ namespace SimpleADOApp
         private readonly int index;
         private TypeConverter converter;
 
-        internal StructuredDataPropertyDescriptor(StructuredDataDescription descr, int idx, string desc)
+        internal StructuredDataPropertyDescriptor(StructuredDataDescription descr, int idx)
             : base(descr.columnName[idx], new Attribute[] 
                                         { new BrowsableAttribute(true), 
-                                          new ReadOnlyAttribute(true) })
+                                          new DescriptionAttribute(descr.columnDescription[idx])
+                                        })
         {
             this.description = descr;
             this.index = idx;
@@ -125,8 +126,7 @@ namespace SimpleADOApp
         {
             get
             {
-                var d = base.Description;
-                return d;
+               return this.description.columnDescription[this.index];
             }
         }
 
